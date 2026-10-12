@@ -5,11 +5,47 @@ A small Rust REST API built with Axum. It connects to PostgreSQL and returns act
 ## Requirements
 
 - Rust and Cargo (edition 2024)
-- PostgreSQL
+- PostgreSQL server and client (`psql`)
 
-## Database setup
+## Install PostgreSQL in GitHub Codespaces
 
-Create a PostgreSQL database, then create the table the API reads from:
+`psql` is the command-line client; the PostgreSQL server is a separate package. Install both and start the server:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y postgresql postgresql-client
+sudo service postgresql start
+pg_isready
+```
+
+`pg_isready` should report that the server is accepting connections. The service may need to be started again after the Codespace is restarted.
+
+## Create a database and user
+
+Open the PostgreSQL administrator prompt:
+
+```sh
+sudo -n runuser -u postgres -- psql -d postgres
+```
+
+At the `postgres=#` prompt, create a login role, set its password when prompted, and create the database it owns:
+
+```sql
+CREATE ROLE jazzm LOGIN;
+\password jazzm
+CREATE DATABASE carmexdb OWNER jazzm;
+\q
+```
+
+Choose a strong password at the `\password` prompt. This is a PostgreSQL password, not your Codespace password. If the administrator command is denied, your Codespace needs permission to run it as root and switch to the `postgres` operating-system account.
+
+Connect to the database as the new user:
+
+```sh
+psql -h localhost -U jazzm -d carmexdb
+```
+
+Enter the PostgreSQL password you just chose. At the `carmexdb=>` prompt, create the table the API reads from:
 
 ```sql
 CREATE TABLE actor (
@@ -26,6 +62,7 @@ Add any actor records you want returned. For example:
 ```sql
 INSERT INTO actor (first_name, last_name, birth_date)
 VALUES ('Jane', 'Doe', '1985-04-12');
+\q
 ```
 
 ## Configure the connection
@@ -33,10 +70,10 @@ VALUES ('Jane', 'Doe', '1985-04-12');
 Create a `.env` file in the project root and set `DATABASE_URL` to your PostgreSQL connection string:
 
 ```env
-DATABASE_URL=postgres://USER:PASSWORD@localhost:5432/DATABASE_NAME
+DATABASE_URL=postgres://jazzm:YOUR_PASSWORD@localhost:5432/carmexdb
 ```
 
-Replace `USER`, `PASSWORD`, and `DATABASE_NAME` with your local PostgreSQL credentials and database name. Keep `.env` private; do not commit credentials to GitHub.
+Replace `YOUR_PASSWORD` with the password you set for the `jazzm` database user. If it contains URL-special characters such as `@` or `/`, URL-encode them in the connection string. Keep `.env` private; do not commit credentials to GitHub.
 
 ## Run the API
 
